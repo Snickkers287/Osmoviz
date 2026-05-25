@@ -9,7 +9,7 @@ class Scenario(Base):
     name = Column(String(200), nullable=False)
     crop_type = Column(String(50), nullable=False, default="tomato")
     description = Column(Text, nullable=True)
-    location = Column(String(100), nullable=True, default="Suez, Egypt")
+    location = Column(String(100), nullable=True, default="Ismailia, Egypt")
     elevation_m = Column(Float, nullable=False, default=10)
     created_at = Column(DateTime, default=datetime.utcnow)
     latitude_deg = Column(Float, nullable=False, default=29.97)
