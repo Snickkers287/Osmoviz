@@ -43,7 +43,7 @@ def _scenario_out(s: Scenario, db: Session) -> ScenarioOut:
 
 def _stress_out(sr) -> StressResultOut:
     return StressResultOut(
-        vpd_kpa=sr.vpd_kpa, eto_mm_h=sr.eto_mm_h, heat_stress=sr.heat_stress, chilling_stress=sr.chilling_stress,
+        vpd_kpa=sr.vpd_kpa, eto_mm_h=sr.eto_mm_h,etc_mm_h=sr.etc_mm_h, heat_stress=sr.heat_stress, chilling_stress=sr.chilling_stress,
         vpd_high_stress=sr.vpd_high_stress, vpd_low_stress=sr.vpd_low_stress, light_high_stress=sr.light_high_stress,
         light_low_stress=sr.light_low_stress,waterlogging_stress=sr.waterlogging_stress,wilting_stress=sr.wilting_stress,
         overall_stress=sr.overall_stress,dominant_stress=sr.dominant_stress,stress_level=sr.stress_level,active_stresses=sr.active_stresses,
@@ -69,7 +69,7 @@ def create_scenario(body:ScenarioCreate,db:Session=Depends(get_db)):
     db.add(s); db.commit(); db.refresh(s)
     return _scenario_out(s, db)
 @app.get("/api/scenarios", response_model=List[ScenarioOut])
-def list_scenarios(db:session=Depends(get_db)):
+def list_scenarios(db:Session=Depends(get_db)):
     return [_scenario_out(s, db) for s in db.query(Scenario).order_by(Scenario.created_at.desc()).all()]
 @app.get("/api/scenarios/{scenario_id}", response_model=ScenarioOut)
 def get_scenario(scenario_id:int, db: Session=Depends(get_db)):
@@ -112,9 +112,9 @@ def export_csv(scenario_id: int, db: Session=Depends(get_db)):
         ro = _reading_out(r,s)
         w.writerow([ro.timestamp.isoformat(),ro.temperature_c,ro.humidity_pct,ro.soil_moisture_pct,ro.light_lux,  ro.stress.vpd_kpa
                        , ro.stress.eto_mm_h, ro.stress.overall_stress, ro.stress.stress_level, ro.stress.dominant_stress])
-        buf.seek(0)
-        fname=f"osmoviz_{scenario_id}_{datetime.utcnow().strftime('%Y%m%d')}.csv"
-        return StreamingResponse(iter([buf.getvalue()]),media_type="text/csv",headers={"Content-Disposition": f"attachment; filename={fname}"})
+    buf.seek(0)
+    fname=f"osmoviz_{scenario_id}_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(iter([buf.getvalue()]),media_type="text/csv",headers={"Content-Disposition": f"attachment; filename={fname}"})
 
 
 @app.get("/api/scenarios/{scenario_id}/summary", response_model=ScenarioSummary)
@@ -135,12 +135,19 @@ def get_summary(scenario_id:int,db:Session=Depends(get_db)):
         levels[sr.stress_level] = levels.get(sr.stress_level,0) + 1
         dom [sr.dominant_stress] = dom.get(sr.dominant_stress,0)+1
 
+    soil_vals = [r.soil_moisture_pct for r in readings]
+
     return ScenarioSummary(
-        scenario=_scenario_out(s, db),total_readings=n,avg_overall_stress=round(sum(r.overall_stress for r in stress_list) / n, 2),
+        scenario=_scenario_out(s, db),
+        total_readings=n,
+        avg_overall_stress=round(sum(r.overall_stress for r in stress_list) /n, 2),
         max_overall_stress=round(max(r.overall_stress for r in stress_list), 2),
         time_in_stress={k: round(v / n * 100, 1) for k, v in levels.items()},dominant_stresses=dom,
-        avg_vpd=round(sum(r.vpd_kpa for r in stress_list) / n, 4),avg_eto=round(sum(r.eto_mm_h for r in stress_list) / n, 4),
+        avg_vpd=round(sum(r.vpd_kpa for r in stress_list) / n,4),avg_eto=round(sum(r.eto_mm_h for r in stress_list) / n, 4),
         avg_temp=round(sum(r.temperature_c for r in readings) / n, 2),avg_humidity=round(sum(r.humidity_pct for r in readings) / n, 2),
+
+        avg_soil_moisture=round(sum(soil_vals)/ n, 2),max_soil_moisture=round(max(soil_vals), 2),
+        min_soil_moisture=round(min(soil_vals),2),
     )
 
 
@@ -177,21 +184,21 @@ def simulate(body: SimulateRequest,db: Session=Depends(get_db)):
                 elif ev.type =="overwatering":sm=min(100.0,sm+30.0)
                 elif ev.type=="low_light":lux *=0.20
                 RH=max(10.0,min(100.0,RH))
-                T += random.uniform(-0.3, 0.3)
-                RH += random.uniform(-0.5, 0.5)
-                sm += random.uniform(-0.2, 0.2)
-                lux = max(0, lux +random.uniform(-200.0, 200))
-                readings.append(Reading(
-                    scenario_id=body.scenario_id,timestamp=ts,
-                    temperature_c=round(T,2),humidity_pct=round(max(10,min(100,RH)),1),
-                    soil_moisture_pct=round(max(0.0, min(100.0,sm)),1),
-                    light_lux=round(max(0.0,lux),0),
-                    wind_speed_ms=body.wind_speed_ms,
-                ))
-                db.bulk_save_objects(readings);db.commit()
-                return SimulateResponse(
-                    scenario_id=body.scenario_id, readings_created=len(readings), message=f"Generated{len(readings)} readings over{body.duration_hours}h.",
-                )
-            _FRONTEND = Path(__file__).resolve().parent.parent/ "frontend"
-            if _FRONTEND.exists():
-                app.mount("/", StaticFiles(directory=str(_FRONTEND), html=True), name="frontend")
+        T += random.uniform(-0.3, 0.3)
+        RH += random.uniform(-0.5, 0.5)
+        sm += random.uniform(-0.2, 0.2)
+        lux = max(0, lux +random.uniform(-200.0, 200))
+        readings.append(Reading(
+            scenario_id=body.scenario_id,timestamp=ts,
+            temperature_c=round(T,2),humidity_pct=round(max(10,min(100,RH)),1),
+            soil_moisture_pct=round(max(0.0, min(100.0,sm)),1),
+            light_lux=round(max(0.0,lux),0),
+            wind_speed_ms=body.wind_speed_ms,
+            ))
+    db.bulk_save_objects(readings);db.commit()
+    return SimulateResponse(
+        scenario_id=body.scenario_id, readings_created=len(readings), message=f"Generated{len(readings)} readings over{body.duration_hours}h.",
+        )
+_FRONTEND = Path(__file__).resolve().parent.parent/ "frontend"
+if _FRONTEND.exists():
+    app.mount("/", StaticFiles(directory=str(_FRONTEND), html=True), name="frontend")

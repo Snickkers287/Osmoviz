@@ -4,7 +4,7 @@ from backend.database import SessionLocal, init_db
 from backend.models import Reading, Scenario
 
 
-def __parse_ts(s: str) -> datetime:
+def _parse_ts(s: str) -> datetime:
     for fmt in ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M"):
         try:
             return datetime.strptime(s.strip(), fmt)
@@ -122,7 +122,7 @@ def seed():
         db.bulk_save_objects([
             Reading(
                 scenario_id=scenario.id,
-                timestamp=__parse_ts(row[0]),
+                timestamp= _parse_ts(row[0]),
                 temperature_c=float(row[1]),
                 humidity_pct=float(row[2]),
                 light_lux=float(row[3]),
@@ -140,5 +140,5 @@ def seed():
         raise
     finally:
         db.close()
-if __name__ == "__main__":  # unindented, outside seed()
+if __name__ == "__main__":
     seed()

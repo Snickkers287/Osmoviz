@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Float, DateTime, String, Integer, Text
+from sqlalchemy import Column, Float, DateTime, String, Integer, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from backend.database import Base
 
@@ -12,16 +12,15 @@ class Scenario(Base):
     location = Column(String(100), nullable=True, default="Ismailia, Egypt")
     elevation_m = Column(Float, nullable=False, default=10)
     created_at = Column(DateTime, default=datetime.utcnow)
-    latitude_deg = Column(Float, nullable=False, default=29.97)
-
+    latitude_deg = Column(Float,nullable=False, default=30.60)
 
     readings = relationship("Reading", back_populates="scenario", cascade="all, delete-orphan", order_by="Reading.timestamp")
 
 class Reading(Base):
     __tablename__ = "readings"
     id = Column(Integer, primary_key=True, index=True)
-    scenario_id = Column(Integer, ForeignKey("scenarios.id"), ondelete="CASCADE", nullable=False, index=True)
-    timestamp = Column(DateTime, nullable=False, Index=True)
+    scenario_id = Column(Integer, ForeignKey("scenarios.id", ondelete="CASCADE"), nullable=False, index=True)
+    timestamp = Column(DateTime, nullable=False, index=True)
     temperature_c =Column(Float, nullable=False)
     humidity_pct = Column(Float, nullable=False)
     soil_moisture_pct = Column(Float, nullable=False)

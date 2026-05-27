@@ -118,7 +118,7 @@ class ScenarioSummary(BaseModel):
     dominant_stresses:  dict
     avg_vpd:float
     avg_eto:   float
-    avg_temp:
+    avg_temp:float
     avg_humidity:float
     avg_soil_moisture:float
     max_soil_moisture:   float
