@@ -1,6 +1,6 @@
 # Osmoviz
 
-[Live Demo](http://localhost:8000) — run locally, no hosted version yet
+[Live Demo](https://osmoviz-production.up.railway.app/)
 
 Built this project using sensor data from my school's IoT greenhouse prototype. The idea was to take the raw numbers the greenhouse was logging and actually do something useful with them like calculating plant stress, visualizing it, and showing which environmental parameter is causing the most damage at any given reading.
 
