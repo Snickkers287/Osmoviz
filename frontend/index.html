@@ -2,9 +2,192 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Osmoviz — Plant Stress Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
-<body>
 
+
+
+<body>
+    <header class="header">
+        <div class="header-brand">
+            <span class="brand-hex">⬡</span>
+            <div class="brand-text">
+                <span class="brand-name">Osmoviz</span>
+                <span class="brand-sub"> Plant stress analyzer</span>
+            </div>
+        </div>
+        <div class="header-mid">
+            <span class="field-1b1">Scenario</span>
+            <select id="scenario-select" class="scenario-select">
+                    <option>Loading....</option>
+            </select>
+        </div>
+        <div class="header-right">
+            <div class="status-pill">
+                <span class="status-dot" id="status-dot"></span>
+                <span id ="status-text">Connecting</span>
+            </div>
+            <div class="location-chip" id="location-chip">—</div>
+        </div>
+    </header>
+    <div class="app-grid">
+        <aside class="plant-panel">
+            <div class="phead">
+                <span class="phead-title">Plant Status</span>
+                <div class="level-tag" id="level-tag">—</div>
+            </div>
+            <div class="plant-stage">
+                <div id="plant-wrap"></div>
+                <div class="score-badge">
+                    <span class="score-num" id="score-num">—</span>
+                    <span class="score-sub">/ 100</span>
+                </div>
+            </div>
+            <div class="metric-strip">
+                <div class="metric-cell">
+                    <span class="metric-k">ET₀</span>
+                    <span class="metric-v" id="m-eto">—</span>
+                    <span class="metric-u">mm/h</span>
+                </div>
+                <div class="metric-sep"></div>
+                <div class="metric-cell">
+                    <span class="metric-k">ETc</span>
+                    <span class="metric-v" id="m-etc">—</span>
+                    <span class="metric-u">mm/h</span>
+                </div>
+                <div class="metric-sep"></div>
+                <div class="metric-cell">
+                    <span class="metric-k">VPD</span>
+                    <span class="metric-v" id="m-vpd">—</span>
+                    <span class="metric-u">kPa</span>
+                </div>
+            </div>
+
+            <div class="reading-nav">
+                <button class="nav-btn" id="btn-prev" disabled>◀</button>
+                <div class="nav-info">
+                    <span class="nav-ts" id="nav-ts">—</span>
+                    <span class="nav-note" id="nav-note"></span>
+                    <span class="nav-cnt" id="nav-cnt">—/—</span>
+                </div>
+                <button class="nav-btn" id="btn-next" disabled>▶</button>
+            </div>
+        </aside>
+
+
+
+        <div class="stress-panel">
+            <div class="phead">
+                <span class="phead-title">Sensor Readings</span>
+                <span class="dominant-tag" id="dominant-tag">—</span>
+            </div>
+            <div class="sensor-row">
+                <div class="sensor-title">
+                    <span class="s-icon">🌡</span>
+                    <span class="s-val" id="s-temp">—</span>
+                    <span class="s-unit">°C</span>
+                    <span class="s-lbl">Air Temp</span>
+                </div>
+                <div class="sensor-title">
+                    <span class="s-icon">💧</span>
+                    <span class="s-val" id="s-hum">—</span>
+                    <span class="s-unit">%</span>
+                    <span class="s-lbl">Humidity</span>
+                </div>
+                <div class="sensor-title">
+                    <span class="s-icon">🌱</span>
+                    <span class="s-val" id="s-soil">—</span>
+                    <span class="s-unit">%</span>
+                    <span class="s-lbl">Soil H₂O</span>
+                </div>
+                <div class="sensor-title">
+                    <span class="s-icon">☀</span>
+                    <span class="s-val" id="s-lux">—</span>
+                    <span class="s-unit">lux</span>
+                    <span class="s-lbl">Light</span>
+                </div>
+            </div>
+
+
+            <div class="phead mt16">
+                <span class="phead-title">Stress Indices</span>
+            </div>
+            <div class="stress-bars" id="stress-bars"></div>
+            <div class="phead mt16">
+                <span class="phead-title">Recommendations</span>
+            </div>
+            <div class="rec-list" id="rec-list">
+                <div class="rec-placeholder">Select a reading to view recommendations</div>
+            </div>
+        </div>
+    </div>
+    <section class="chart-section">
+        <div class="chart-tabs">
+            <button class="ctab active" data-tab="stress">Overall Stress</button>
+            <button class="ctab" data-tab="climate">Temp &amp; Humidity</button>
+            <button class="ctab" data-tab="soil">Soil Moisture</button>
+            <button class="ctab" data-tab="light">Light (lux)</button>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="main-chart"></canvas>
+        </div>
+    </section>
+    <footer class="sum-bar">
+        <div class="sum-item">
+            <span class="sum-lbl">Readings</span>
+            <span class="sum-val" id="sum-n">—</span>
+        </div>
+        <div class="sum-item">
+            <span class="sum-lbl">Avg Stress</span>
+            <span class="sum-val" id="sum-avg">—</span>
+        </div>
+        <div class="sum-item">
+            <span class="sum-lbl">Optional</span>
+            <span class="sum-val optimal" id="sum-opt">—</span>
+        </div>
+        <div class="sum-item">
+            <span class="sum-lbl">Mild</span>
+            <span class="sum-val mild" id="sum-mild">—</span>
+        </div>
+        <div class="sum-item">
+            <span class="sum-lbl">Moderate</span>
+            <span class="sum-val moderate" id="sum-mod">—</span>
+        </div>
+        <div class="sum-item">
+            <span class="sum-lbl">Severe</span>
+            <span class="sum-val severe" id="sum-sev">—</span>
+        </div>
+        <div class="sum-item">
+            <span class="sum-lbl">Avg Temp</span>
+            <span class="sum-val" id="sum-temp">—</span>
+        </div>
+        <div class="sum-item">
+            <span class="sum-lbl">Avg VPD</span>
+            <span class="sum-val" id="sum-vpd">—</span>
+        </div>
+        <div class="sum-item">
+            <span class="sum-lbl">Soil Range</span>
+            <span class="sum-val" id="sum-soil">—</span>
+        </div>
+        <div class="sum-item">
+            <span class="sum-lbl">AVG ETo</span>
+            <span class="sum-val" id="sum-eto">—</span>
+        </div>
+    </footer>
+
+
+    <script src="js/api.js"></script>
+    <script src="js/plant_svg.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
+
+
